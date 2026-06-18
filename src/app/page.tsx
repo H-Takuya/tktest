@@ -46,37 +46,28 @@ export default function Home() {
           />
 
           {/* 比較年コントロール */}
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-start gap-2 flex-wrap">
-              <button
-                onClick={() => setCompareMode(!compareMode)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 ${
-                  compareMode
-                    ? "bg-gray-700 text-white"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                }`}
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+            <button
+              onClick={() => setCompareMode(!compareMode)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 ${
+                compareMode
+                  ? "bg-gray-700 text-white"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              比較
+            </button>
+            {compareMode && (
+              <select
+                value={compareYear}
+                onChange={(e) => setCompareYear(Number(e.target.value))}
+                className="px-3 py-1 rounded-lg border border-orange-200 text-sm font-semibold text-orange-600 bg-white focus:outline-none focus:ring-2 focus:ring-orange-300"
               >
-                比較
-              </button>
-              {compareMode && (
-                <div className="flex flex-wrap gap-1.5">
-                  {compareYearOptions.map((y) => (
-                    <button
-                      key={y}
-                      onClick={() => setCompareYear(y)}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-all
-                        ${
-                          y === compareYear
-                            ? "bg-orange-500 text-white shadow"
-                            : "bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                        }`}
-                    >
-                      {y}年
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                {compareYearOptions.map((y) => (
+                  <option key={y} value={y}>{y}年</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
