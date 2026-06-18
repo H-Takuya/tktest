@@ -66,11 +66,13 @@ export function TemperatureCalendar({
     month === today.getMonth() + 1 &&
     year === today.getFullYear();
 
+  // 通常モード: 小数1桁
   const fmt = (n: number | null) =>
     n === null ? "—" : `${n > 0 ? "+" : ""}${n.toFixed(1)}°`;
 
-  const fmtShort = (n: number | null) =>
-    n === null ? "—" : `${n > 0 ? "+" : ""}${Math.round(n)}°`;
+  // 比較モード: 整数のみ（スペース節約）
+  const fmtCmp = (n: number | null) =>
+    n === null ? "—" : `${Math.round(n)}°`;
 
   return (
     <div className="w-full">
@@ -101,16 +103,14 @@ export function TemperatureCalendar({
           const dayColor =
             col === 0 ? "text-red-500" : col === 6 ? "text-blue-500" : "text-gray-700";
 
-          const compareDateStr = compareYear
-            ? `${compareYear}-${mm}-${dd}`
-            : null;
+          const compareDateStr = compareYear ? `${compareYear}-${mm}-${dd}` : null;
           const compareWeather = compareDateStr ? compareDays?.[compareDateStr] : undefined;
 
           return (
             <div
               key={dateStr}
               className={`rounded-lg border p-1 flex flex-col items-center transition-all
-                ${isCompare ? "min-h-[76px] sm:min-h-[86px]" : "min-h-[64px] sm:min-h-[72px]"}
+                ${isCompare ? "min-h-[72px] sm:min-h-[80px]" : "min-h-[64px] sm:min-h-[72px]"}
                 ${isToday(d) ? "border-blue-400 ring-2 ring-blue-300" : "border-gray-100"}
                 ${weather ? getTempBg(weather.tempMean) : "bg-white"}
                 ${loading ? "opacity-50" : ""}
@@ -119,22 +119,43 @@ export function TemperatureCalendar({
               <span className={`text-xs font-bold leading-none mb-1 ${dayColor}`}>{d}</span>
 
               {isCompare ? (
-                <div className="flex flex-col items-center gap-0.5 w-full">
-                  {/* 主年行 */}
-                  <CompareRow
-                    yearLabel={String(year).slice(2)}
-                    weather={weather}
-                    isLoading={loading}
-                    fmtShort={fmtShort}
-                  />
-                  {/* 比較年行 */}
-                  <CompareRow
-                    yearLabel={String(compareYear).slice(2)}
-                    weather={compareWeather}
-                    isLoading={!!compareLoading}
-                    fmtShort={fmtShort}
-                    dimLabel
-                  />
+                <div className="grid grid-cols-2 gap-0 w-full">
+                  {/* 主年列 */}
+                  <div className="flex flex-col items-center border-r border-gray-100 pr-0.5">
+                    <span className="text-[7px] leading-none text-blue-400 mb-0.5">
+                      &apos;{String(year).slice(2)}
+                    </span>
+                    {weather ? (
+                      <>
+                        <span className={`text-[10px] leading-tight ${getTempColor(weather.tempMax)}`}>
+                          {fmtCmp(weather.tempMax)}
+                        </span>
+                        <span className={`text-[10px] leading-tight ${getTempColor(weather.tempMin)}`}>
+                          {fmtCmp(weather.tempMin)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-gray-300 text-[9px]">{loading ? "…" : "—"}</span>
+                    )}
+                  </div>
+                  {/* 比較年列 */}
+                  <div className="flex flex-col items-center pl-0.5">
+                    <span className="text-[7px] leading-none text-orange-400 mb-0.5">
+                      &apos;{String(compareYear).slice(2)}
+                    </span>
+                    {compareWeather ? (
+                      <>
+                        <span className={`text-[10px] leading-tight ${getTempColor(compareWeather.tempMax)}`}>
+                          {fmtCmp(compareWeather.tempMax)}
+                        </span>
+                        <span className={`text-[10px] leading-tight ${getTempColor(compareWeather.tempMin)}`}>
+                          {fmtCmp(compareWeather.tempMin)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-gray-300 text-[9px]">{compareLoading ? "…" : "—"}</span>
+                    )}
+                  </div>
                 </div>
               ) : weather ? (
                 <div className="flex flex-col items-center gap-0 text-center">
@@ -154,43 +175,6 @@ export function TemperatureCalendar({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function CompareRow({
-  yearLabel,
-  weather,
-  isLoading,
-  fmtShort,
-  dimLabel,
-}: {
-  yearLabel: string;
-  weather: DayWeather | undefined;
-  isLoading: boolean;
-  fmtShort: (n: number | null) => string;
-  dimLabel?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-center gap-0.5 w-full">
-      <span className={`text-[8px] leading-none w-3.5 text-right shrink-0 ${dimLabel ? "text-gray-300" : "text-gray-400"}`}>
-        {yearLabel}
-      </span>
-      {weather ? (
-        <div className="flex items-center gap-0.5">
-          <span className={`text-[9px] leading-none ${getTempColor(weather.tempMax)}`}>
-            {fmtShort(weather.tempMax)}
-          </span>
-          <span className="text-[8px] text-gray-300 leading-none">/</span>
-          <span className={`text-[9px] leading-none ${getTempColor(weather.tempMin)}`}>
-            {fmtShort(weather.tempMin)}
-          </span>
-        </div>
-      ) : isLoading ? (
-        <span className="text-gray-300 text-[9px]">…</span>
-      ) : (
-        <span className="text-gray-200 text-[9px]">—</span>
-      )}
     </div>
   );
 }
