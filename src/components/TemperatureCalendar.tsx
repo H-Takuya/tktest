@@ -28,6 +28,21 @@ function getTempColor(temp: number | null): string {
   return "text-red-700 font-bold";
 }
 
+function getWeatherEmoji(code: number | null): string {
+  if (code === null) return "";
+  if (code === 0) return "☀️";
+  if (code === 1) return "🌤️";
+  if (code === 2) return "⛅";
+  if (code === 3) return "☁️";
+  if (code <= 48) return "🌫️";
+  if (code <= 55) return "🌦️";
+  if (code <= 67) return "🌧️";
+  if (code <= 77) return "❄️";
+  if (code <= 82) return "🌦️";
+  if (code <= 86) return "🌨️";
+  return "⛈️";
+}
+
 function getTempBg(tempMean: number | null): string {
   if (tempMean === null) return "";
   if (tempMean <= 0) return "bg-blue-50";
@@ -116,7 +131,14 @@ export function TemperatureCalendar({
                 ${loading ? "opacity-50" : ""}
               `}
             >
-              <span className={`text-xs font-bold leading-none mb-1 ${dayColor}`}>{d}</span>
+              <div className="flex items-center gap-0.5 mb-1">
+                <span className={`text-xs font-bold leading-none ${dayColor}`}>{d}</span>
+                {!isCompare && weather && (
+                  <span className="text-[10px] leading-none">
+                    {getWeatherEmoji(weather.weatherCode)}
+                  </span>
+                )}
+              </div>
 
               {isCompare ? (
                 <div className="grid grid-cols-2 gap-0 w-full">
