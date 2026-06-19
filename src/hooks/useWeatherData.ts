@@ -31,23 +31,23 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
       return;
     }
 
+    const now = new Date();
+    // APIは未来データを持たないため、endDateを昨日以前に制限する
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const maxDate = yesterday.toISOString().split("T")[0];
+
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
     const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const rawEndDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const endDate = rawEndDate < maxDate ? rawEndDate : maxDate;
 
-    const now = new Date();
-    const isCurrentOrFutureMonth =
-      year > now.getFullYear() ||
-      (year === now.getFullYear() && month >= now.getMonth() + 1);
-
-    if (isCurrentOrFutureMonth) {
-      const today = now.toISOString().split("T")[0];
-      if (startDate > today) {
-        setDays({});
-        setLoading(false);
-        setError(null);
-        return;
-      }
+    // 未来月、またはまだ取得できるデータがない場合はスキップ
+    if (startDate > maxDate) {
+      setDays({});
+      setLoading(false);
+      setError(null);
+      return;
     }
 
     let cancelled = false;
