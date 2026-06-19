@@ -17,6 +17,36 @@ interface WeatherData {
 
 const KAWAGUCHI_LAT = 35.8082;
 const KAWAGUCHI_LON = 139.724;
+const CURRENT_MONTH_TTL = 60 * 60 * 1000; // 1時間
+
+function cacheKey(year: number, month: number) {
+  return `weather_kawaguchi_${year}_${String(month).padStart(2, "0")}`;
+}
+
+function loadCache(
+  year: number,
+  month: number,
+  isPastMonth: boolean
+): Record<string, DayWeather> | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(year, month));
+    if (!raw) return null;
+    const { ts, days } = JSON.parse(raw) as { ts: number; days: Record<string, DayWeather> };
+    if (isPastMonth) return days; // 過去月は期限なし
+    if (Date.now() - ts < CURRENT_MONTH_TTL) return days; // 今月は1時間
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCache(year: number, month: number, days: Record<string, DayWeather>) {
+  try {
+    localStorage.setItem(cacheKey(year, month), JSON.stringify({ ts: Date.now(), days }));
+  } catch {
+    // localStorage が使えない環境ではスキップ
+  }
+}
 
 export function useWeatherData(year: number | null, month: number): WeatherData {
   const [days, setDays] = useState<Record<string, DayWeather>>({});
@@ -32,7 +62,6 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
     }
 
     const now = new Date();
-    // APIは未来データを持たないため、endDateを昨日以前に制限する
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     const maxDate = yesterday.toISOString().split("T")[0];
@@ -42,9 +71,20 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
     const rawEndDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     const endDate = rawEndDate < maxDate ? rawEndDate : maxDate;
 
-    // 未来月、またはまだ取得できるデータがない場合はスキップ
     if (startDate > maxDate) {
       setDays({});
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    const isPastMonth =
+      year < now.getFullYear() ||
+      (year === now.getFullYear() && month < now.getMonth() + 1);
+
+    const cached = loadCache(year, month, isPastMonth);
+    if (cached) {
+      setDays(cached);
       setLoading(false);
       setError(null);
       return;
@@ -82,6 +122,7 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
           };
         });
 
+        saveCache(year, month, result);
         if (!cancelled) setDays(result);
       } catch (e) {
         if (!cancelled)
