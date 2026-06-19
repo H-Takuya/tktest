@@ -7,6 +7,7 @@ export interface DayWeather {
   tempMax: number | null;
   tempMin: number | null;
   tempMean: number | null;
+  weatherCode: number | null;
 }
 
 interface WeatherData {
@@ -17,10 +18,10 @@ interface WeatherData {
 
 const KAWAGUCHI_LAT = 35.8082;
 const KAWAGUCHI_LON = 139.724;
-const CURRENT_MONTH_TTL = 60 * 60 * 1000; // 1時間
+const CURRENT_MONTH_TTL = 60 * 60 * 1000;
 
 function cacheKey(year: number, month: number) {
-  return `weather_kawaguchi_${year}_${String(month).padStart(2, "0")}`;
+  return `weather_kawaguchi_v2_${year}_${String(month).padStart(2, "0")}`;
 }
 
 function loadCache(
@@ -32,8 +33,8 @@ function loadCache(
     const raw = localStorage.getItem(cacheKey(year, month));
     if (!raw) return null;
     const { ts, days } = JSON.parse(raw) as { ts: number; days: Record<string, DayWeather> };
-    if (isPastMonth) return days; // 過去月は期限なし
-    if (Date.now() - ts < CURRENT_MONTH_TTL) return days; // 今月は1時間
+    if (isPastMonth) return days;
+    if (Date.now() - ts < CURRENT_MONTH_TTL) return days;
     return null;
   } catch {
     return null;
@@ -103,7 +104,7 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
         url.searchParams.set("end_date", endDate);
         url.searchParams.set(
           "daily",
-          "temperature_2m_max,temperature_2m_min,temperature_2m_mean"
+          "temperature_2m_max,temperature_2m_min,temperature_2m_mean,weathercode"
         );
         url.searchParams.set("timezone", "Asia/Tokyo");
 
@@ -119,6 +120,7 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
             tempMax: json.daily.temperature_2m_max[i],
             tempMin: json.daily.temperature_2m_min[i],
             tempMean: json.daily.temperature_2m_mean[i],
+            weatherCode: json.daily.weathercode?.[i] ?? null,
           };
         });
 
