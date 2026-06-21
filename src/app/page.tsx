@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { YearMonthNav } from "@/components/YearMonthNav";
 import { TemperatureCalendar } from "@/components/TemperatureCalendar";
 import { useWeatherData } from "@/hooks/useWeatherData";
@@ -8,18 +8,63 @@ import { useWeatherData } from "@/hooks/useWeatherData";
 const CURRENT_YEAR = new Date().getFullYear();
 const ALL_YEARS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - i);
 
+const LOCATIONS = [
+  { id: "kawaguchi", label: "埼玉県川口市", lat: 35.8082, lon: 139.724 },
+  { id: "tsukuba", label: "筑波サーキット周辺", lat: 36.175, lon: 140.073 },
+] as const;
+
+type LocationId = (typeof LOCATIONS)[number]["id"];
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem("temp_calendar_settings");
+    if (!raw) return null;
+    return JSON.parse(raw) as {
+      year: number;
+      month: number;
+      locationId: LocationId;
+      compareMode: boolean;
+      compareYear: number;
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveSettings(s: {
+  year: number;
+  month: number;
+  locationId: LocationId;
+  compareMode: boolean;
+  compareYear: number;
+}) {
+  try {
+    localStorage.setItem("temp_calendar_settings", JSON.stringify(s));
+  } catch {}
+}
+
 export default function Home() {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [compareMode, setCompareMode] = useState(false);
-  const [compareYear, setCompareYear] = useState(now.getFullYear() - 1);
+  const saved = typeof window !== "undefined" ? loadSettings() : null;
 
-  const { days, loading, error } = useWeatherData(year, month);
+  const [year, setYear] = useState(saved?.year ?? now.getFullYear());
+  const [month, setMonth] = useState(saved?.month ?? now.getMonth() + 1);
+  const [locationId, setLocationId] = useState<LocationId>(saved?.locationId ?? "kawaguchi");
+  const [compareMode, setCompareMode] = useState(saved?.compareMode ?? false);
+  const [compareYear, setCompareYear] = useState(saved?.compareYear ?? now.getFullYear() - 1);
+
+  const location = LOCATIONS.find((l) => l.id === locationId) ?? LOCATIONS[0];
+
+  // 設定変更のたびにlocalStorageへ保存
+  useEffect(() => {
+    saveSettings({ year, month, locationId, compareMode, compareYear });
+  }, [year, month, locationId, compareMode, compareYear]);
+
+  const { days, loading, error } = useWeatherData(year, month, location.lat, location.lon);
   const {
     days: compareDays,
     loading: compareLoading,
-  } = useWeatherData(compareMode ? compareYear : null, month);
+  } = useWeatherData(compareMode ? compareYear : null, month, location.lat, location.lon);
 
   const compareYearOptions = ALL_YEARS.filter((y) => y !== year);
 
@@ -29,7 +74,7 @@ export default function Home() {
         {/* ヘッダー */}
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">
-            埼玉県川口市 気温カレンダー
+            {location.label} 気温カレンダー
           </h1>
           <p className="text-sm text-gray-400 mt-1">
             データ提供: Open-Meteo（気象庁準拠データ）
@@ -38,6 +83,20 @@ export default function Home() {
 
         {/* ナビゲーション */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+          {/* 地域選択 */}
+          <div className="mb-3">
+            <label className="text-xs font-semibold text-gray-500 mb-1 block">地域</label>
+            <select
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value as LocationId)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              {LOCATIONS.map((l) => (
+                <option key={l.id} value={l.id}>{l.label}</option>
+              ))}
+            </select>
+          </div>
+
           <YearMonthNav
             year={year}
             month={month}

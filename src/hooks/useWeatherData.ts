@@ -16,21 +16,23 @@ interface WeatherData {
   error: string | null;
 }
 
-const KAWAGUCHI_LAT = 35.8082;
-const KAWAGUCHI_LON = 139.724;
 const CURRENT_MONTH_TTL = 60 * 60 * 1000;
 
-function cacheKey(year: number, month: number) {
-  return `weather_kawaguchi_v2_${year}_${String(month).padStart(2, "0")}`;
+function cacheKey(lat: number, lon: number, year: number, month: number) {
+  const latStr = lat.toFixed(4).replace(".", "_");
+  const lonStr = lon.toFixed(4).replace(".", "_");
+  return `weather_${latStr}_${lonStr}_v2_${year}_${String(month).padStart(2, "0")}`;
 }
 
 function loadCache(
+  lat: number,
+  lon: number,
   year: number,
   month: number,
   isPastMonth: boolean
 ): Record<string, DayWeather> | null {
   try {
-    const raw = localStorage.getItem(cacheKey(year, month));
+    const raw = localStorage.getItem(cacheKey(lat, lon, year, month));
     if (!raw) return null;
     const { ts, days } = JSON.parse(raw) as { ts: number; days: Record<string, DayWeather> };
     if (isPastMonth) return days;
@@ -41,15 +43,20 @@ function loadCache(
   }
 }
 
-function saveCache(year: number, month: number, days: Record<string, DayWeather>) {
+function saveCache(lat: number, lon: number, year: number, month: number, days: Record<string, DayWeather>) {
   try {
-    localStorage.setItem(cacheKey(year, month), JSON.stringify({ ts: Date.now(), days }));
+    localStorage.setItem(cacheKey(lat, lon, year, month), JSON.stringify({ ts: Date.now(), days }));
   } catch {
     // localStorage が使えない環境ではスキップ
   }
 }
 
-export function useWeatherData(year: number | null, month: number): WeatherData {
+export function useWeatherData(
+  year: number | null,
+  month: number,
+  lat: number,
+  lon: number
+): WeatherData {
   const [days, setDays] = useState<Record<string, DayWeather>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +90,7 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
       year < now.getFullYear() ||
       (year === now.getFullYear() && month < now.getMonth() + 1);
 
-    const cached = loadCache(year, month, isPastMonth);
+    const cached = loadCache(lat, lon, year, month, isPastMonth);
     if (cached) {
       setDays(cached);
       setLoading(false);
@@ -98,8 +105,8 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
     (async () => {
       try {
         const url = new URL("https://archive-api.open-meteo.com/v1/archive");
-        url.searchParams.set("latitude", String(KAWAGUCHI_LAT));
-        url.searchParams.set("longitude", String(KAWAGUCHI_LON));
+        url.searchParams.set("latitude", String(lat));
+        url.searchParams.set("longitude", String(lon));
         url.searchParams.set("start_date", startDate);
         url.searchParams.set("end_date", endDate);
         url.searchParams.set(
@@ -124,7 +131,7 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
           };
         });
 
-        saveCache(year, month, result);
+        saveCache(lat, lon, year, month, result);
         if (!cancelled) setDays(result);
       } catch (e) {
         if (!cancelled)
@@ -135,7 +142,7 @@ export function useWeatherData(year: number | null, month: number): WeatherData 
     })();
 
     return () => { cancelled = true; };
-  }, [year, month]);
+  }, [year, month, lat, lon]);
 
   return { days, loading, error };
 }
