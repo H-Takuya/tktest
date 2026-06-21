@@ -6,7 +6,7 @@ import { TemperatureCalendar } from "@/components/TemperatureCalendar";
 import { useWeatherData } from "@/hooks/useWeatherData";
 
 const CURRENT_YEAR = new Date().getFullYear();
-const ALL_YEARS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - i);
+const ALL_YEARS = Array.from({ length: CURRENT_YEAR - 1940 + 1 }, (_, i) => CURRENT_YEAR - i);
 
 const LOCATIONS = [
   { id: "kawaguchi", label: "埼玉県川口市", lat: 35.8082, lon: 139.724 },
