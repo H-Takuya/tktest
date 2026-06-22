@@ -11,7 +11,7 @@ interface Props {
 
 const MONTHS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const CURRENT_YEAR = new Date().getFullYear();
-const MIN_YEAR = CURRENT_YEAR - 9;
+const MIN_YEAR = 1940;
 
 export function YearMonthNav({ year, month, onYearChange, onMonthChange }: Props) {
   const prevMonth = () => {
@@ -49,7 +49,7 @@ export function YearMonthNav({ year, month, onYearChange, onMonthChange }: Props
           onChange={(e) => onYearChange(Number(e.target.value))}
           className="px-3 py-1 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
         >
-          {Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - i).map((y) => (
+          {Array.from({ length: CURRENT_YEAR - MIN_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map((y) => (
             <option key={y} value={y}>{y}年</option>
           ))}
         </select>
